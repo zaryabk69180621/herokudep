@@ -14,9 +14,10 @@ jobs:
       - name: Deploy to Heroku
         uses: gonuit/heroku-docker-deploy@v1.3.3
         with:
-          email: ${{ secrets.HEROKU_EMAIL }}
+          email: ${{ secrets.HEROKU_EMAIL }}          # REQUIRED!
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
-          dockerfile_path: ./Dockerfile
+          dockerfile_directory: ./                    # Use this, NOT dockerfile_path
+          dockerfile_name: Dockerfile                 # Default is "Dockerfile"
+          docker_options: --no-cache                  # Use this, NOT options
           process_type: web
-          options: "--no-cache"
