@@ -9,15 +9,42 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v3
+      # 1. Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
       
-      - name: Deploy to Heroku
-        uses: gonuit/heroku-docker-deploy@v1.3.3
-        with:
-          email: ${{ secrets.HEROKU_EMAIL }}          # REQUIRED!
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
-          dockerfile_directory: ./                    # Use this, NOT dockerfile_path
-          dockerfile_name: Dockerfile                 # Default is "Dockerfile"
-          docker_options: --no-cache                  # Use this, NOT options
-          process_type: web
+      # 2. Install Heroku CLI
+      - name: Install Heroku CLI
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh
+      
+      # 3. Login to Heroku
+      - name: Login to Heroku
+        run: heroku container:login
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      
+      # 4. SET STACK TO CONTAINER (NEW STEP)
+      - name: Set stack to container
+        run: |
+          heroku stack:set container --app ${{ secrets.HEROKU_APP_NAME }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      
+      # 5. Build and push Docker image
+      - name: Build and push Docker image
+        run: |
+          heroku container:push web --app ${{ secrets.HEROKU_APP_NAME }}
+      
+      # 6. Release on Heroku
+      - name: Release on Heroku
+        run: |
+          heroku container:release web --app ${{ secrets.HEROKU_APP_NAME }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      
+      # 7. Health check (Optional)
+      - name: Verify deployment
+        run: |
+          sleep 10  # Wait for app to start
+          curl -f https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/health || echo "Health check failed but deployment completed"
