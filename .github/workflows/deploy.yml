@@ -9,48 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       
-      - name: Install Heroku CLI
-        run: |
-          curl https://cli-assets.heroku.com/install.sh | sh
-          heroku --version
-      
-      - name: Login to Heroku
-        run: heroku container:login
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      
-      - name: Set stack to container
-        run: |
-          heroku stack:set container --app ${{ secrets.HEROKU_APP_NAME }} || echo "Stack already set or failed to set"
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      
-      # FIXED: Added echo and better error handling for container:push
-      - name: Build and push Docker image
-        run: |
-          echo "Building and pushing Docker image..."
-          heroku container:push web --app ${{ secrets.HEROKU_APP_NAME }} --verbose
-          echo "✅ Docker image pushed successfully"
-      
-      # FIXED: Added delay and check before release
-      - name: Wait for image to be ready
-        run: |
-          echo "Waiting for image to be fully processed..."
-          sleep 10
-      
-      - name: Release on Heroku
-        run: |
-          echo "Releasing container..."
-          heroku container:release web --app ${{ secrets.HEROKU_APP_NAME }}
-          echo "✅ Container released successfully"
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      
-      - name: Verify deployment
-        run: |
-          echo "Checking if app is running..."
-          sleep 15
-          curl -f https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/ || echo "App might still be starting"
+      - name: Deploy to Heroku
+        uses: gonuit/heroku-docker-deploy@v1.3.3
+        with:
+          email: ${{ secrets.HEROKU_EMAIL }}
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          dockerfile_path: ./Dockerfile
+          process_type: web
+          options: "--no-cache"
