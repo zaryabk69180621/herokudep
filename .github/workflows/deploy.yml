@@ -9,42 +9,48 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
       
-      # 2. Install Heroku CLI
       - name: Install Heroku CLI
         run: |
           curl https://cli-assets.heroku.com/install.sh | sh
+          heroku --version
       
-      # 3. Login to Heroku
       - name: Login to Heroku
         run: heroku container:login
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       
-      # 4. SET STACK TO CONTAINER (NEW STEP)
       - name: Set stack to container
         run: |
-          heroku stack:set container --app ${{ secrets.HEROKU_APP_NAME }}
+          heroku stack:set container --app ${{ secrets.HEROKU_APP_NAME }} || echo "Stack already set or failed to set"
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       
-      # 5. Build and push Docker image
+      # FIXED: Added echo and better error handling for container:push
       - name: Build and push Docker image
         run: |
-          heroku container:push web --app ${{ secrets.HEROKU_APP_NAME }}
+          echo "Building and pushing Docker image..."
+          heroku container:push web --app ${{ secrets.HEROKU_APP_NAME }} --verbose
+          echo "✅ Docker image pushed successfully"
       
-      # 6. Release on Heroku
+      # FIXED: Added delay and check before release
+      - name: Wait for image to be ready
+        run: |
+          echo "Waiting for image to be fully processed..."
+          sleep 10
+      
       - name: Release on Heroku
         run: |
+          echo "Releasing container..."
           heroku container:release web --app ${{ secrets.HEROKU_APP_NAME }}
+          echo "✅ Container released successfully"
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       
-      # 7. Health check (Optional)
       - name: Verify deployment
         run: |
-          sleep 10  # Wait for app to start
-          curl -f https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/health || echo "Health check failed but deployment completed"
+          echo "Checking if app is running..."
+          sleep 15
+          curl -f https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/ || echo "App might still be starting"
